@@ -36,14 +36,11 @@ def cart_handler(sender, **kwargs):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="orders")
-    amount = models.FloatField(default=0)
-    is_paid = models.BooleanField(default=False)
-    order_id = models.CharField(max_length=100,blank = True)
-    payment_id = models.CharField(max_length=100,blank =True)
-    payment_signature = models.CharField(max_length=100, blank=True)
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.FloatField()
+    razorpay_order_id = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class OrderedItems(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

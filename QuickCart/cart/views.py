@@ -1,3 +1,9 @@
+from rest_framework import status
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.http import HttpResponse
+import razorpay
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -57,4 +63,54 @@ class OrderAPI(APIView):
     def get(self, request):
         query_set = Order.objects.filter(user = request.user)
         serailizers = OrderSerializer(query_set, many=True)
-        return Response(serailizers.data)
+        return Response(serailizers.data)  
+
+
+class CreateOrderView(APIView):
+    def post(self, request):
+        try:
+            razorpay_client = razorpay.Client(
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            amount = request.data['amount']
+            order = razorpay_client.order.create({
+                'amount': amount * 100,
+                'currency': 'INR',
+                'payment_capture': 1
+            })
+            serializer = OrderSerializer(data={
+                'user': request.user.id,
+                'amount': amount,
+                'razorpay_order_id': order['id']
+            })
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(order, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        
+
+class PaymentCallbackView(APIView):
+    def post(self, request):
+        try:
+            razorpay_client = razorpay.Client(
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            razorpay_payment_id = request.data['razorpay_payment_id']
+            razorpay_order_id = request.data['razorpay_order_id']
+            signature = request.data['razorpay_signature']
+            params_dict = {
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_signature': signature
+            }
+            order = Order.objects.get(razorpay_order_id=razorpay_order_id)
+            try:
+                razorpay_client.utility.verify_payment_signature(params_dict)
+                order.status = 'COMPLETED'
+                order.save()
+                cart = Cart.objects.filter(user=request.user)
+                cart.delete()
+                return Response({'status': 'success'}, status=status.HTTP_200_OK)
+            except:
+                return Response({'status': 'failure'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
