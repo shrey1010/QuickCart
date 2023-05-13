@@ -33,3 +33,19 @@ def cart_handler(sender, **kwargs):
     # cart = CartItems.objects.get(id = cart_items.cart.id)
     # cart.total_price = cart_items.price
     # cart.save()
+
+
+class Order(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="orders")
+    amount = models.FloatField(default=0)
+    is_paid = models.BooleanField(default=False)
+    order_id = models.CharField(max_length=100,blank = True)
+    payment_id = models.CharField(max_length=100,blank =True)
+    payment_signature = models.CharField(max_length=100, blank=True)
+
+
+class OrderedItems(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+
