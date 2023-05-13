@@ -30,7 +30,6 @@ def cart_handler(sender, **kwargs):
     price_of_product = Product.objects.get(id=cart_items.product.id)
     cart_items.price = cart_items.quantity()*float(price_of_product.price)
     total_cart_items = CartItems.objects.filter(user = cart_items.user)
-
-    cart = CartItems.objects.get(id = cart_items.cart.id)
-    cart.total_price = cart_items.price
-    cart.save()
+    # cart = CartItems.objects.get(id = cart_items.cart.id)
+    # cart.total_price = cart_items.price
+    # cart.save()
